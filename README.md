@@ -5,6 +5,7 @@ The goal of the game is to match the colors of the LEDs on the left to the ones 
 ### Inputs:Outputs
 <p>Gyro, Left Button, Right Button:LEDs<br>
 <p>Pin A4:Reset Game<br>
-:Serial Monitor
+<p>:Serial Monitor<br>
+
 ### Planned additions
 30sec left beep.
