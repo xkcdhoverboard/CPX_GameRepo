@@ -80,11 +80,6 @@ void loop() {
         case 7:
           NRButton();
           break;
-        case 8:
-          //yay
-          break;
-        case 9:
-          //yay
           break;
         default:
           break;
@@ -113,7 +108,6 @@ void loop() {
 
 
 //THESE ARE THE CASES FOR HOW LIGHTS CAN CHANGE.
-
 
 //change hue as left button is pressed
 void LButton(){
