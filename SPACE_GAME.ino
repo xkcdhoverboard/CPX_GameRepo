@@ -2,11 +2,10 @@
 #include <AsyncDelay.h>
 //OBJECTIVE:create a game where players scramble to figure out which sensors change the lights to match the set lights.
 //NOTE: Pixels 0-4 change while 5-9 are the refrences
-//TO ADD: 30secs and 10sec countdown sounds.
+//TO ADD: 30secs alert and 10sec countdown sounds.
 //BUGS/FIXES:
-//1: the reset switch is way to easy to fat finger may change it to use the switch
-//2: some of the lights can start in the solved position
-//3: lights near 255 or 0 can be harder to lock due to the value being wierd
+//1: some of the lights can start in the solved position
+//2: lights near 255 or 0 can be harder to lock due to the value being wierd
 
 volatile int LightCase[5] = {0,0,0,0,0};
 volatile int LightHues[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -17,6 +16,8 @@ volatile int LevEndTest = 0;
 volatile int LevelNum = 0;
 volatile int LevelTime = 0;
 AsyncDelay LevTimer;
+AsyncDelay Warning;
+AsyncDelay Ten;
 
 void setup() {
   // put your setup code here, to run once:
@@ -28,17 +29,18 @@ void setup() {
 
 void loop() {
   //use switch case to call functions pertaining to each LED
-  //write random values to an array to signify witch case to use.
-  if(CircuitPlayground.readCap(3) > 500){
-    //reset level number
-    LevReset();
-    //reset level
-    Reset();
-    //wait until you stop touching it
-    while(CircuitPlayground.readCap(3) > 500){}
-  }
   //if the timer is still going run the game
-  if (!(LevTimer.isExpired())){
+  while (!(LevTimer.isExpired())){
+
+    if(Warning.isExpired()){
+      CircuitPlayground.playTone(261.6,100);
+      Warning.start(100000, AsyncDelay::MILLIS);
+    }
+
+    if(Ten.isExpired()){
+      CircuitPlayground.playTone(440,100);
+      Ten.start(100000, AsyncDelay::MILLIS);
+    }
 
     for(int i = 0; i < 5;i++){
       //both of these variables can be removed but are here for more readability and redundancy.
@@ -90,24 +92,23 @@ void loop() {
     }
     Lock();
     if(LevEndTest == 0){
+      delay(1000);
       Serial.println("reset");
       Reset();
     }
   }
-  else{
     //print the end of game serial output
-    Serial.println("loss");
+    Serial.println("Game Over");
     Serial.println("Level Reached:");
     Serial.print(LevelNum);
     //wait until reset is preformed
     while(CircuitPlayground.readCap(3) < 500){}
     //reset level number
-    LevReset();
+    LevelNum = 0;
     //reset level
     Reset();
     //wait until you stop touching it
     while(CircuitPlayground.readCap(3) > 500){}
-  }
 }
 
 
@@ -146,13 +147,13 @@ void SGyroZ(){
 }
 void NLButton(){
   if(!CircuitPlayground.leftButton()){
-    LightHues[Pixel] = LightHues[Pixel] + 10;
+    LightHues[Pixel] = LightHues[Pixel] + 5;
     CircuitPlayground.setPixelColor(Pixel, CircuitPlayground.colorWheel((LightHues[Pixel]) & 255));
   }
 }
 void NRButton(){
   if(!CircuitPlayground.rightButton()){
-    LightHues[Pixel] = LightHues[Pixel] + 10;
+    LightHues[Pixel] = LightHues[Pixel] + 5;
     CircuitPlayground.setPixelColor(Pixel, CircuitPlayground.colorWheel((LightHues[Pixel]) & 255));
   }
 }
@@ -168,12 +169,10 @@ void Lock(){
   //loop through changeable lights
   for(int i = 0; i < 5;i++){
     //are the hues of the two compared lights close enough to each other?
-    //BUG #3
+    //BUG #1
     if(((LightHues[9-i]+15) > LightHues[i]) && ((LightHues[9-i]-15) < LightHues[i])){
-        //this is so hacky but it works lol
+      //this is so hacky but it works lol
       LockTest[i] = LockTest[i] + 1;
-      
-
       if(LockTest[i]>10){
         //make the colors the same
         LightHues[i] = LightHues[9-i];
@@ -189,11 +188,7 @@ void Lock(){
     }
   }
 }
-
-void LevReset(){
-  LevelNum = 0;
-}
-//reset game completly (!probably should have more safegaurds to activate than it has currently)
+//reset/load level 
 void Reset() {
   //turn off every light
   CircuitPlayground.clearPixels();
@@ -215,11 +210,16 @@ void Reset() {
   }
   //set the timer shorter and shorter code
   if (LevelNum <= 46){
-    //linearly lower level time to a minimum of 10s
+    //linearly lower level time to a minimum of 15s
     LevelTime = 60000 - ((LevelNum - 1) * 1000);
+  }
+  else{
+    LevelTime = 15000;
   }
 
   LevTimer.start(LevelTime, AsyncDelay::MILLIS);
+  Warning.start(LevelTime-30000, AsyncDelay::MILLIS);
+  Ten.start(LevelTime-10000, AsyncDelay::MILLIS);
   Serial.println("start");
   Serial.println(LevelTime);
   Serial.println(LevelNum);
